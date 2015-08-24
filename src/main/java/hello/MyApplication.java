@@ -1,5 +1,6 @@
 package hello;
 
+import com.google.common.cache.CacheBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,8 @@ import org.springframework.cache.guava.GuavaCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 @SpringBootApplication
 @EnableCaching
 public class MyApplication
@@ -21,7 +24,15 @@ public class MyApplication
     @Bean
     public CacheManager buildCacheManager()
     {
-        return new GuavaCacheManager();
+        GuavaCacheManager cacheManager = new GuavaCacheManager();
+        cacheManager.setCacheBuilder(
+            CacheBuilder.newBuilder()
+                .expireAfterWrite(
+                    60,
+                    TimeUnit.SECONDS
+                )
+        );
+        return cacheManager;
     }
 
     @Component
@@ -36,12 +47,32 @@ public class MyApplication
             log.info("...Fetching books.");
             log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
             log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
+            Thread.sleep(30000L);
+            log.info("...Fetching books.");
             log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
+            log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
+            simulateSlowService();
+            log.info("...Fetching books.");
+            log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
+            log.info("isbn-1234--->" + bookRepository.getByIsbn("isbn-1234"));
+
         }
+
+        private void simulateSlowService() {
+            try {
+                long time = 65000L;
+                Thread.sleep(time);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
     }
 
     public static void main(String[] args)
     {
         SpringApplication.run(MyApplication.class, args);
     }
+
+
 }
