@@ -11,8 +11,12 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.guava.GuavaCacheManager;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
@@ -22,17 +26,37 @@ public class MyApplication
     private static final Logger log = LoggerFactory.getLogger(MyApplication.class);
 
     @Bean
-    public CacheManager buildCacheManager()
+    public JedisConnectionFactory jedisConnectionFactory()
     {
-        GuavaCacheManager cacheManager = new GuavaCacheManager();
-        cacheManager.setCacheBuilder(
-            CacheBuilder.newBuilder()
-                .expireAfterWrite(
-                    60,
-                    TimeUnit.SECONDS
-                )
-        );
-        return cacheManager;
+        JedisConnectionFactory connectionFactory = new JedisConnectionFactory();
+        return connectionFactory;
+    }
+
+    @Bean
+    @Autowired
+    public RedisTemplate redisTemplate(
+        JedisConnectionFactory jedisConnectionFactory
+    )
+    {
+        RedisTemplate<Object, Object> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(jedisConnectionFactory);
+        return redisTemplate;
+    }
+
+    @Bean
+    @Autowired
+    public CacheManager buildCacheManager(RedisTemplate redisTemplate)
+    {
+        RedisCacheManager redisCacheManager =
+            new RedisCacheManager(
+                redisTemplate
+            )
+        ;
+        redisCacheManager.setDefaultExpiration(60); // in seconds
+        HashMap<String,Long> cacheExpireTimes = new HashMap<>();
+        cacheExpireTimes.put("books", 60L);
+        redisCacheManager.setExpires(cacheExpireTimes);
+        return redisCacheManager;
     }
 
     @Component
