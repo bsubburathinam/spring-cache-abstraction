@@ -16,6 +16,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
@@ -51,6 +52,10 @@ public class MyApplication
                 redisTemplate
             )
         ;
+        redisCacheManager.setDefaultExpiration(60); // in seconds
+        HashMap<String,Long> cacheExpireTimes = new HashMap<>();
+        cacheExpireTimes.put("books", 60L);
+        redisCacheManager.setExpires(cacheExpireTimes);
         return redisCacheManager;
     }
 
